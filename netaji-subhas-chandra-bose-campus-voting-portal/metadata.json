@@ -1,0 +1,6 @@
+{
+  "name": "Netaji Subhas Chandra Bose Campus Voting Portal",
+  "description": "Official Student Council elections portal for Netaji Subhas Chandra Bose College, featuring candidate posts across Executive, Activities, and Department Representatives with a secure cryptographic Voting Vault.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

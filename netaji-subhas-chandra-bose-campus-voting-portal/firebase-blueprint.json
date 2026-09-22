@@ -1,0 +1,52 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered student voter profile for Netaji Subhas Chandra Bose College",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "studentId": { "type": "string", "maxLength": 30, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "departmentId": { "type": "string", "maxLength": 50 },
+        "year": { "type": "string", "maxLength": 30 },
+        "collegeIdNumber": { "type": "string", "maxLength": 50 },
+        "isVerified": { "type": "boolean" },
+        "hasVoted": { "type": "boolean" },
+        "receiptHash": { "type": "string", "maxLength": 128 },
+        "votedAt": { "type": "string", "maxLength": 60 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "name", "email", "studentId", "departmentId", "year"]
+    },
+    "BallotRecord": {
+      "title": "BallotRecord",
+      "description": "Cryptographically sealed ballot stored in the Voting Vault ledger",
+      "type": "object",
+      "properties": {
+        "ballotId": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "voterId": { "type": "string", "maxLength": 128 },
+        "voterRollHash": { "type": "string", "maxLength": 128 },
+        "departmentId": { "type": "string", "maxLength": 50 },
+        "timestamp": { "type": "string", "maxLength": 60 },
+        "receiptHash": { "type": "string", "maxLength": 128 },
+        "signature": { "type": "string", "maxLength": 256 },
+        "status": { "type": "string", "enum": ["sealed", "verified"] },
+        "blockNumber": { "type": "integer" }
+      },
+      "required": ["ballotId", "voterId", "voterRollHash", "departmentId", "timestamp", "receiptHash", "signature", "status", "blockNumber"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "UserProfile" },
+      "description": "Collection of student voter profiles"
+    },
+    "/ballots/{ballotId}": {
+      "schema": { "$ref": "BallotRecord" },
+      "description": "Collection of sealed voting vault ballots"
+    }
+  }
+}

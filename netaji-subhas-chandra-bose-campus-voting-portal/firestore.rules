@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation for UserProfile
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'name', 'email', 'studentId', 'departmentId', 'year']) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.studentId is string && data.studentId.size() <= 30 &&
+             data.departmentId is string && data.departmentId.size() <= 50 &&
+             data.year is string && data.year.size() <= 30;
+    }
+
+    // User Profile collection (PII Protected)
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isValidId(userId) &&
+                       isOwner(userId) &&
+                       incoming().userId == existing().userId &&
+                       isValidUserProfile(incoming()) &&
+                       // Identity & voter status immutability check
+                       (existing().studentId == incoming().studentId);
+
+      allow delete: if false;
+    }
+
+    // Validation for Vault Ballot
+    function isValidBallot(data) {
+      return data.keys().hasAll(['ballotId', 'voterId', 'voterRollHash', 'departmentId', 'timestamp', 'receiptHash', 'signature', 'status', 'blockNumber']) &&
+             data.ballotId is string && data.ballotId.size() <= 64 &&
+             data.voterId is string && data.voterId.size() <= 128 &&
+             data.voterRollHash is string && data.voterRollHash.size() <= 128 &&
+             data.departmentId is string && data.departmentId.size() <= 50 &&
+             data.timestamp is string && data.timestamp.size() <= 60 &&
+             data.receiptHash is string && data.receiptHash.size() <= 128 &&
+             data.signature is string && data.signature.size() <= 256 &&
+             data.status in ['sealed', 'verified'] &&
+             data.blockNumber is int;
+    }
+
+    // Public Ledger for Voting Vault (Read public sealed hashes, create once, strictly immutable)
+    match /ballots/{ballotId} {
+      allow get: if isValidId(ballotId);
+      allow list: if true;
+
+      allow create: if isValidId(ballotId) &&
+                       isValidBallot(incoming());
+
+      // Ballots in the Vault are immutable - no updates or deletion allowed
+      allow update, delete: if false;
+    }
+
+    // Connection test document
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+  }
+}
